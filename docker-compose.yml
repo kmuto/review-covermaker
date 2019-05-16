@@ -1,0 +1,11 @@
+version: '2'
+services:
+  reviewcover:
+    volumes:
+      - .:/work
+    build: .
+
+networks:
+  default:
+    external:
+      name: bridge

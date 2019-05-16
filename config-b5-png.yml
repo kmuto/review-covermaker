@@ -1,0 +1,8 @@
+inherit: ["config.yml"]
+covermaker:
+  LS:
+      # 印刷前に正すことを承知した上で、AI・PDFの代わりにRGB PNGを貼り付ける
+      # だいたい適正な大きさではないはずなのでwidth等を使用して合わせること
+      file: sample-images/noto.png
+      yoffset: 5
+      option: "width=120mm"

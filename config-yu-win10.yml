@@ -1,0 +1,5 @@
+inherit: ["config.yml"]
+
+covermaker:
+  # 遊書体（Windows 10版）
+  pxchfonmap: "yu-win10"

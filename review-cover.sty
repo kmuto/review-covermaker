@@ -1,0 +1,182 @@
+\NeedsTeXFormat{pLaTeX2e}
+\ProvidesPackage{review-cover}[2019/05/12 v1.0]
+
+\makeatletter
+
+\newif\ifrv@debug\rv@debugfalse
+\newif\ifrv@debugmore\rv@debugmorefalse
+\newif\ifrvonlyone\rvonlyonefalse
+\DeclareOptionX{paper}[b5]{\gdef\rvpaper{#1}}
+\DeclareOptionX{spine}[0mm]{\gdef\rvspinewidth{#1}}
+\DeclareOptionX{debug}[false]{\csname rv@debug#1\endcsname} % デバッグモード
+\DeclareOptionX{debugmore}[false]{\csname rv@debugmore#1\endcsname} % さらに位置表示付き
+\DeclareOptionX{onlyone}[false]{\csname rvonlyone#1\endcsname} % 表1だけにするか
+\DeclareOptionX{pxchfonmap}[noto-otc]{\gdef\rvpxchfonmap{#1}} % pxchfonのマップ
+\ExecuteOptionsX{paper,spine,debug,debugmore,onlyone,pxchfonmap}
+\ProcessOptionsX\relax
+
+% パッケージ
+\usepackage{plext}
+\usepackage{tikz}
+\usepackage[uplatex,deluxe,expert,jis2004]{otf}
+\usepackage[prefer2004jis,alphabet,relfont,\rvpxchfonmap]{pxchfon}
+
+\newlength{\rvpaperwidth}
+\newlength{\rvpaperheight}
+
+\def\rv@tmp{b5}\ifx\rvpaper\rv@tmp
+  \setlength{\rvpaperwidth}{182mm}
+  \setlength{\rvpaperheight}{257mm}
+\else\def\rv@tmp{a5}\ifx\rvpaper\rv@tmp
+  \setlength{\rvpaperwidth}{148mm}
+  \setlength{\rvpaperheight}{210mm}
+\else
+  \PackageError{review-cover}{\rvpaper はサポートしていない紙サイズです (b5またはa5)}{}
+\fi\fi
+
+% 半分を計算しておく
+\newlength{\rvpaperwidthhalf}
+\setlength{\rvpaperwidthhalf}{\dimexpr \the\rvpaperwidth / 2\relax}
+\newlength{\rvpaperheighthalf}
+\setlength{\rvpaperheighthalf}{\dimexpr \the\rvpaperheight / 2\relax}
+\newlength{\rvspinewidthhalf}
+\setlength{\rvspinewidthhalf}{\dimexpr \rvspinewidth / 2\relax}
+
+\if@pdftombo
+  \def\rv@tmp{b5}\ifx\rvpaper\rv@tmp
+    % A3シートでのB5位置
+    \def\pgf@sys@pdf@mark@pos@pgfpageorigin{%
+      \pgf@x=\dimexpr 1in +2.583mm - \the\rvspinewidthhalf\relax
+      \pgf@y=\dimexpr 1in -5.383mm \relax
+      \ignorespaces
+    }
+  \else\def\rv@tmp{a5}\ifx\rvpaper\rv@tmp
+    \def\rv@tmp{a3}\ifx\recls@tombopaper\rv@tmp
+      % A3シートでのA5位置
+      \def\pgf@sys@pdf@mark@pos@pgfpageorigin{%
+          \pgf@x=\dimexpr 1in +36.528mm - \the\rvspinewidthhalf\relax
+          \pgf@y=\dimexpr 1in +18.119mm \relax
+          \ignorespaces
+        }
+    \else\def\rv@tmp{b4}\ifx\recls@tombopaper\rv@tmp
+      % B4シートでのA5位置
+      \def\pgf@sys@pdf@mark@pos@pgfpageorigin{%
+          \pgf@x=\dimexpr 1in +8.582mm - \the\rvspinewidthhalf\relax\relax
+          \pgf@y=\dimexpr 1in -1.883mm \relax
+          \ignorespaces
+        }
+    \fi\fi
+  \fi\fi
+\fi
+
+% 色指定
+% draw内でカラー指定はしづらいので、事前にここで定義する必要
+\definecolor{commentred}{cmyk}{0,1,1,0}
+\definecolor{commentgreen}{cmyk}{0.6,0,0.93,0}
+
+% フォント
+\def\rv@metainfofont{\sffamily\fontsize{10pt}{15pt}\selectfont}
+
+%
+\def\rvorientation{%
+% 基本4方位+センター
+\coordinate (N) at (current page.north);
+\coordinate (W) at (current page.west);
+\coordinate (NW) at (current page.north west);
+\coordinate (E) at (current page.east);
+\coordinate (NE) at (current page.north east);
+\coordinate (S) at (current page.south);
+\coordinate (SW) at (current page.south west);
+\coordinate (SE) at (current page.south east);
+\coordinate (C) at (current page.center);
+% 左(表4)
+\coordinate (LNW) at (NW); %anchor=north west
+\coordinate (LN) at ([xshift=\the\rvpaperwidthhalf]LNW); %anchor=north
+\coordinate (LNE) at ([xshift=\the\rvpaperwidth]LNW); %anchor=north east
+\coordinate (LW) at (W); % anchor=west
+\coordinate (LC) at ([xshift=\the\rvpaperwidthhalf]LW); % anchor=center
+\coordinate (LE) at ([xshift=\the\rvpaperwidth]LW); % anchor=east
+\coordinate (LSW) at (SW); %anchor=south west
+\coordinate (LS) at ([xshift=\the\rvpaperwidthhalf]LSW); %anchor=south
+\coordinate (LSE) at ([xshift=\the\rvpaperwidth]LSW); %anchor=south east
+
+% 背
+\coordinate (NC) at ([xshift=\the\rvspinewidthhalf]LNE); %anchor=north
+\coordinate (SC) at ([xshift=\the\rvspinewidthhalf]LSE); %anchor=south
+
+% 右(表1)
+\ifrvonlyone% 表1のみモード
+  \coordinate (RNW) at (NW); %anchor=north west
+  \coordinate (RN) at (N); %anchor=north
+  \coordinate (RNE) at (NE); %anchor=north east
+  \coordinate (RW) at (W); %anchor=west
+  \coordinate (RC) at (C); %anchor=center
+  \coordinate (RE) at (E); %anchor=east
+  \coordinate (RSW) at (SW); %anchor=south west
+  \coordinate (RS) at (S); %anchor=south
+  \coordinate (RSE) at (SE); %anchor=south east
+\else
+  \coordinate (RNW) at ([xshift=-\the\rvpaperwidth]NE); %anchor=north west
+  \coordinate (RN) at ([xshift=\the\rvpaperwidthhalf]RNW); %anchor=north
+  \coordinate (RNE) at (NE); %anchor=north east
+  \coordinate (RW) at ([yshift=-\the\rvpaperheighthalf]RNW); %anchor=west
+  \coordinate (RC) at ([xshift=\the\rvpaperwidthhalf]RW); %anchor=center
+  \coordinate (RE) at (E); %anchor=east
+  \coordinate (RSW) at ([xshift=-\the\rvpaperwidth]SE); %anchor=south west
+  \coordinate (RS) at ([xshift=\the\rvpaperwidthhalf]RSW); %anchor=south
+  \coordinate (RSE) at (SE); %anchor=south east
+\fi
+}
+
+\def\rvmetainfo{%
+% ------------------------------
+% メタ情報
+\draw (NW) node[anchor=south west,xshift=2mm,yshift=4mm] {\rv@metainfofont\rvmetainfostring};
+\draw (NE) node[anchor=south east,xshift=-2mm,yshift=4mm] {\rv@metainfofont\rvmetainfodate};
+
+% プレビューモード情報
+\ifrv@debug
+  \draw (SW) node[anchor=north west,xshift=2mm,yshift=-4mm] {\rv@metainfofont \textcolor{commentred}{プレビューモード（印刷入稿用ではありません）}};
+  \draw[commentgreen,dashed,line width=0.1mm] (SW) rectangle (NE);% 仕上がり罫線
+  \draw[commentred,dotted, line width=0.1mm] % センター罫線
+    (N) -- (S)
+    (W) -- (E);
+  \draw[commentgreen,dashed,line width=0.1mm] (LNE) --(LSE); % 表4範囲罫線
+  \draw[commentgreen,dashed,line width=0.1mm] (RNW) --(RSW); % 表1範囲罫線
+  
+  \ifrv@debugmore
+    % 位置丸 (よりデバッグ向き)
+    \draw[commentred,line width=0.1mm,dashed]
+      (LNW) circle (5mm) node {LNW}
+      (LN) circle (5mm) node {LN}
+      (LNE) circle (5mm) node {LNE}
+      (LW) circle (5mm) node {LW}
+      (LC)  circle (5mm) node {LC}
+      (LE)  circle (5mm) node {LE}
+      (LSW)  circle (5mm) node {LSW}
+      (LS)  circle (5mm) node {LS}
+      (LSE)  circle (5mm) node {LSE}
+      (RNW) circle (5mm) node {RNW}
+      (RN) circle (5mm) node {RN}
+      (RNE) circle (5mm) node {RNE}
+      (RW) circle (5mm) node {RW}
+      (RC) circle (5mm) node {RC}
+      (RE) circle (5mm) node {RE}
+      (RSW) circle (5mm) node {RSW}
+      (RS) circle (5mm) node {RS}
+      (RSE) circle (5mm) node {RSE}
+      (NC) circle (5mm) node {NC}
+      (C) circle (5mm) node {C}
+      (SC) circle (5mm) node {SC}
+    ;
+  \fi
+\fi
+}
+\ifrvonlyone % 表1モードの場合はメッセージ等入れる余地なし
+  \def\rvmetainfo{}
+\fi
+
+\makeatother
+
+\pagestyle{empty}
+\endinput

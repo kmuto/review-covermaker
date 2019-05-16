@@ -1,0 +1,9 @@
+inherit: ["config-base.yml"]
+
+covermaker:
+  preview: true
+  previewmore: true
+  noshowinfo: true
+  paper: a5
+  tombopaper: b4
+  spine: 20

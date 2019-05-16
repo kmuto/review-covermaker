@@ -1,0 +1,28 @@
+# 基底設定
+# 表紙で利用するグローバルパラメータは bookname と booktitle のみ(ほかは単に無視されます)
+review_version: 3.0
+bookname: book
+language: ja
+booktitle: Re:VIEWの表紙
+
+# 表紙用のパラメータブロック
+# covermaker:
+  # コマンドの--previewオプションと同じ効果。枠を表示する
+  # preview: null
+  # 位置名を表示する (コマンドの--previewmoreオプションはpreview:true、previewmore:trueにする)
+  # previewmore: null
+  # コマンドの--onlyoneオプションと同じ効果。表紙(表1)のみを出力する
+  # onlyone: null
+  # 上部にある仕様や日付を表示しない
+  # noshowinfo: null
+  # フォントマップのデフォルト。noto-otcはOTC版のNotoフォントを利用
+  # https://review-knowledge-ja.readthedocs.io/ja/latest/latex/uptex-fonts.html の「プリセットを使う」を参照
+  # pxchfonmap: noto-otc
+  # TeXコンパイラ名。LuaLaTeXには非対応のため、実質upLaTeX一択。パスが通っていないときにはフルパスで明示指定する
+  # texcommand: "uplatex"
+  # TeXコンパイラのオプション
+  # texoptions: "-interaction=nonstopmode -file-line-error"
+  # DVI-PDF変換コマンド名。LuaLaTeXには非対応のため、実質dvipdfmx一択。パスが通っていないときにはフルパスで明示指定する
+  # dvicommand: "dvipdfmx"
+  # DVIwareのオプション
+  # dvioptions' "-d 5 -z 9"

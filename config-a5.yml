@@ -1,0 +1,137 @@
+inherit: ["config-base.yml"]
+
+covermaker:
+  paper: a5
+  tombopaper: b4
+  paperthickness: 0.063
+  pages: 200
+
+  frontcoverimage:
+    file: sample-images/a5-sample-h1.ai
+
+  backcoverimage:
+    file: sample-images/a5-sample-h4.ai
+
+  # 表1に置く文字や画像の指定
+  # 紙面上の座標ポイントは
+  # RNW RN  RNE
+  # RW  RC  RE
+  # RSW RS  RSE
+  #
+  # 表1の中央
+  RC:
+    # 配置する文字列を配列で指定する。要素ごとに改行される。TeXマクロは使用不可
+    # (TeXマクロを指定したいときには、自己責任ですべて記述するrawstringを使う)
+    string: ["Re:VIEWの", "表紙"]
+    # 文字サイズ(pt)。デフォルト値は20
+    fontsize: 60
+    # rawstringは、stringの代わりに名前のTeX記述を入れる。stringとは排他。
+    # 配列ではなく単一文字列
+    # rawstring: null
+    # 行間。文字サイズに対する比率。デフォルト0.5
+    # lineskip: 0.5
+    # 縦書きにするか(trueにすると縦書き)
+    # 縦書きの場合、stringやrawstring内で改行できない
+    # vertical: null
+    # 文字列のオフセット値(mm)。基準点はポイントによって異なる。RCの場合は中央が基準点。デフォルトは0
+    # xoffset: 0
+    yoffset: -12
+    # 文字列の色。"black"(デフォルト), "white", CMYKの4値(0.0〜1.0)を表す配列
+    # color: black
+    # 2行以上の行揃え方法。left,center(デフォルト),right
+    align: right
+    # 書体
+    # mincho-light, mincho-medium, mincho-bold, gothic-medium,  gothic-bold, gothic-exbold, maru-medium
+    # 実際にどのフォントになるかはpxchfonmapの指定による
+    font: gothic-exbold
+    # 欧文箇所に日本語フォント従属文字を使用しないようにする。
+    # trueにすると欧文フォントが使われる
+    # norelfont: null
+    # 画像配置。stringと同時指定可(画像が先に置かれ、その上に文字が乗る)
+    # 画像例は後出を参照
+    # image: null
+
+  # 表1の上中央
+  RN:
+    string: ["1コマンドでできる！"]
+    # 色をCMYK値で指定
+    color: [0, 0.5, 0.5, 0]
+    font: mincho-bold
+    yoffset: 40
+    fontsize: 30
+    xoffset: 10
+
+  # 表1の右下
+  RSE:
+    string: ["@kmuto"]
+    fontsize: 30
+    font: gothic-medium
+    xoffset: -10
+    yoffset: -10
+    color: [1, 0, 0.5, 0]
+
+  # 背に置く文字や画像の指定
+  # 紙面上の座標ポイントは
+  # NC
+  # C
+  # SC
+  #
+  # 背の上
+  NC:
+    string: ["Re:VIEWの表紙"]
+    fontsize: 20
+    # 縦書き
+    vertical: true
+    yoffset: 5
+    color: [1, 0, 1, 0]
+    font: mincho-bold
+
+  # 背の中央
+  C:
+    # TeX命令を直接記述するためstringの代わりにrawstringを使う例
+    rawstring: "$\\sum_{i=1}^n$"
+
+  # 背の下
+  SC:
+    string: ["@kmuto"]
+    fontsize: 15
+    vertical: true
+    yoffset: -5
+    color: [1, 0, 0.5, 0]
+    font: gothic-medium
+
+  # 表4に置く文字や画像の指定
+  # 紙面上の座標ポイントは
+  # LNW LN  LNE
+  # LW  LC  LE
+  # LSW LS  LSE
+  #
+  # 表4の右上
+  LNE:
+    string: ["定価：￥1000"]
+    fontsize: 15
+    xoffset: -20
+    yoffset: 10
+    color: black
+    font: maru-medium
+
+  # 表4の中央
+  LC:
+   string: ["● config.ymlで", "● 紙サイズとかページ数とか", "● 配置ポイント、文字列か画像を指定して", "● ビルドすると", "● 表紙PDFがずびゃっとできる", "● CMYK化やX-1a化もできなくはないけど", "● Webサービスだとサーバ負担が重そうだなぁ"]
+   align: left
+   color: [0, 1, 0.8, 0]
+   font: mincho-bold
+   yoffset: -30
+   # 従属欧文ではなくTeXの欧文書体を使う
+   norelfont: true
+
+  # 表4の下中央
+  LS:
+    string: ["当然画像も置ける！"]
+    font: gothic-bold
+    yoffset: -10
+    image:
+      # 背景と同様にCMYKのPDFまたはAIファイルのパスを指定する
+      file: sample-images/noto.pdf
+      yoffset: 5
+      option: "width=80mm,pagebox=artbox"

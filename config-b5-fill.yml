@@ -1,0 +1,14 @@
+inherit: ["config.yml"]
+
+covermaker:
+  # 塗りの例。frontcoverfillはCMYK値
+  # imageも指定した場合は、塗った上に画像が配置される。
+  # ベタ塗りについてはインク総量の問題が生じることがあるので、印刷所の確認を受けることを推奨
+  frontcoverimage: null
+  frontcoverfill: [1, 0, 0, 0]
+
+  spineimage: null
+  spinefill: [0, 1, 0, 0]
+
+  backcoverimage: null
+  backcoverfill: [0, 0, 1, 0]

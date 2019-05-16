@@ -1,0 +1,7 @@
+inherit: ["config.yml"]
+covermaker:
+  spineimage:
+    file: sample-images/b5-spine.ai
+    # 背ファイルのうち、左40mm 下0mm 右40mm 上0mmをカットする
+    # 実際には表1・表4に塗りがあるなら、背は必ずそれに両端覆われるので指定しなくてもOK
+    option: "pagebox=mediabox,trim=40mm 0mm 40mm 0mm,clip"

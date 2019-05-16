@@ -1,0 +1,456 @@
+#!/usr/bin/env ruby
+# Copyright (c) 2019 Kenshi Muto
+require 'rubygems'
+require 'review'
+
+module ReVIEW
+  class COVERMaker
+    include LaTeXUtils
+
+    def initialize
+      @logger = ReVIEW.logger
+      initialize_metachars('uplatex')
+
+      @anchors = {
+        'LNW' => 'north west',
+        'LN' => 'north',
+        'LNE' => 'north east',
+        'LW' => 'west',
+        'LC' => 'center',
+        'LE' => 'east',
+        'LSW' => 'south west',
+        'LS' => 'south',
+        'LSE' => 'south east',
+        'NC' => 'north',
+        'C' => 'center',
+        'SC' => 'south',
+        'RNW' => 'north west',
+        'RN' => 'north',
+        'RNE' => 'north east',
+        'RW' => 'west',
+        'RC' => 'center',
+        'RE' => 'east',
+        'RSW' => 'south west',
+        'RS' => 'south',
+        'RSE' => 'south east'
+      }
+
+      @fonts = {
+        'mincho-light' => '\\mcfamily\\ltseries',
+        'mincho-medium' => '\\mcfamily\\mdseries',
+        'mincho-bold' => '\\mcfamily\\bfseries',
+        'gothic-medium' => '\\sffamily\\gtfamily\\mdseries',
+        'gothic-bold' => '\\sffamily\\gtfamily\\bfseries',
+        'gothic-exbold' => '\\sffamily\\gtfamily\\ebseries',
+        'maru-medium' => '\\sffamily\\mgfamily'
+      }
+
+      @aligns = %w(left center right)
+
+      @colors = %w(white black)
+    end
+
+    def system_or_raise(*args)
+      @logger.info args.join(' ')
+      out, status = Open3.capture2e(*args)
+      unless status.success?
+        error "failed to run command: #{args.join(' ')}\n\nError log:\n" + out
+      end
+    end
+
+    def error(msg)
+      @logger.error "#{File.basename($PROGRAM_NAME, '.*')}: #{msg}"
+      exit 1
+    end
+
+    def warn(msg)
+      @logger.warn "#{File.basename($PROGRAM_NAME, '.*')}: #{msg}"
+    end
+
+    def self.execute(*args)
+      self.new.execute(*args)
+    end
+
+    def parse_opts(args)
+      cmd_config = { 'covermaker' => {} }
+      opts = OptionParser.new
+      opts.banner = 'Usage: review-covermaker configfile [pdffile]'
+      opts.version = ReVIEW::VERSION
+      opts.on('--onlyone', 'Export cover page only.') do
+        cmd_config['covermaker']['onlyone'] = true
+      end
+      opts.on('--debug', 'Keep build directory.') do
+        @debug = true
+      end
+      opts.on('--preview', 'Display borders.') do
+        cmd_config['covermaker']['preview'] = true
+      end
+      opts.on('--previewmore', 'Display borders and point circles.') do
+        cmd_config['covermaker']['preview'] = true
+        cmd_config['covermaker']['previewmore'] = true
+      end
+      opts.on('--help', 'Print this message and quit.') do
+        puts opts.help
+        exit 0
+      end
+      opts.parse!(args)
+
+      if args.size < 1 || args.size > 2
+        puts opts.help
+        exit 0
+      end
+
+      [cmd_config, args[0], args[1]]
+    end
+
+    def default_config
+      h = {
+        'covermaker' => {
+          'preview' => nil,
+          'previewmore' => nil,
+          'onlyone' => nil,
+          'paper' => 'b5',
+          'tombopaper' => 'a3',
+          'bleedmargin' => 3,
+          'spine' => nil,
+          'paperthickness' => 0.063,
+          'pages' => nil,
+          'texcommand' => 'uplatex',
+          'texoptions' => '-interaction=nonstopmode -file-line-error',
+          'dvicommand' => 'dvipdfmx',
+          'dvioptions' => '-d 5 -z 9'
+        }
+      }
+      @anchors.keys.each do |pos|
+        h['covermaker'][pos] = {
+          'fontsize' => 16,
+          'lineskip' => 0.5,
+          'xoffset' => 0,
+          'yoffset' => 0,
+          'color' => 'black',
+          'align' => 'center',
+          'font' => 'mincho-medium'
+        }
+      end
+
+      h
+    end
+
+    def execute(*args)
+      @config = ReVIEW::Configure.values
+      @config.maker = 'covermaker'
+      @config.deep_merge!(default_config)
+
+      cmd_config, yamlfile, pdffile = parse_opts(args)
+      error "#{yamlfile} not found." unless File.exist?(yamlfile)
+
+      begin
+        loader = ReVIEW::YAMLLoader.new
+        @config.deep_merge!(loader.load_file(yamlfile))
+      rescue => e
+        error "yaml error #{e.message}"
+      end
+
+      @config.deep_merge!(cmd_config)
+
+      pdffile = "#{@config['bookname']}-cover.pdf" unless pdffile
+
+      begin
+        generate_cover(File.absolute_path(pdffile))
+      rescue ApplicationError => e
+        error(e.message)
+      end
+    end
+
+    def validate
+      errs = []
+      errs.push('paper が不正です: b5 または a5') if !%w(b5 a5).include?(@config['covermaker']['paper'])
+      errs.push('tombopaper が不正です: b4 または a3') if !%w(b4 a3).include?(@config['covermaker']['tombopaper'])
+      errs.push('paper が b5 の場合、tombopaper は a3 である必要があります') if @config['covermaker']['paper'] == 'b5' && @config['covermaker']['tombopaper'] == 'b4'
+      %w(bleedmargin paperthickness).each do |name|
+        errs.push("#{name} が数値ではありません") if !@config['covermaker'][name].kind_of?(Numeric)
+      end
+
+      if @config['covermaker']['spine']
+        errs.push("spine が数値ではありません") if !@config['covermaker']['spine'].kind_of?(Numeric)
+        errs.push("spine と pages はどちらかしか指定できません") if @config['covermaker']['pages']
+      end
+
+      if @config['covermaker']['pages']
+        errs.push("pages が数値ではありません") if !@config['covermaker']['pages'].kind_of?(Numeric)
+        # spineを指定する
+        @config['covermaker']['spine'] = (@config['covermaker']['paperthickness'] * @config['covermaker']['pages']).round(2)
+      end
+
+      # papersizeを作成
+      case @config['covermaker']['paper']
+      when 'b5'
+        @config['covermaker']['papersize'] = "257mm,#{182 * 2 + @config['covermaker']['spine']}mm"
+      when 'a5'
+        @config['covermaker']['papersize'] = "210mm,#{148 * 2 + @config['covermaker']['spine']}mm"
+      end
+
+      error(errs.join("\n")) unless errs.empty?
+    end
+
+    def build_path
+      if @debug
+        path = "#{@config['bookname']}-cover-pdf"
+        if File.exist?(path)
+          FileUtils.rm_rf(path, secure: true)
+        end
+        Dir.mkdir(path)
+        path
+      else
+        Dir.mktmpdir("#{@config['bookname']}-cover-pdf-")
+      end
+    end
+
+    def generate_cover(pdffile)
+      validate
+
+      if @config['covermaker']['onlyone']
+        @dochead = <<EOT
+\\documentclass[paper=#{@config['covermaker']['paper']},media=ebook]{review-jlreq}
+EOT
+      else
+        @dochead = <<EOT
+\\documentclass[paper={#{@config['covermaker']['papersize']}},tombopaper=#{@config['covermaker']['tombopaper']},bleed_margin=#{@config['covermaker']['bleedmargin']}mm,landscape,media=print]{review-jlreq}
+EOT
+      end
+
+      unless @config['covermaker']['noshowinfo']
+        @metainfostring = escape("『#{@config.names_of('booktitle').join}』用表紙PDF：左綴じ, 仕上がり寸法#{@config['covermaker']['paper'].upcase}。背#{@config['covermaker']['spine']}mm")
+        if @config['covermaker']['pages']
+          @metainfostring += " (紙厚#{@config['covermaker']['paperthickness']}mm × #{@config['covermaker']['pages']}p)"
+        end
+
+        @metainfodate = Time.now.strftime('%Y年%m月%d日 %02H:%02M')
+      end
+
+      @reqpackopts = [
+        "paper=#{@config['covermaker']['paper']}",
+        "spine=#{@config['covermaker']['spine']}mm"
+      ]
+      @reqpackopts.push('debug=true') if @config['covermaker']['preview']
+      @reqpackopts.push('debugmore=true') if @config['covermaker']['previewmore']
+      @reqpackopts.push('onlyone=true') if @config['covermaker']['onlyone']
+      @reqpackopts.push("pxchfonmap=#{@config['covermaker']['pxchfonmap']}") if @config['covermaker']['pxchfonmap']
+
+      # builddir内にコピー(リンク)するものを指定。相対パス
+      @copy_target = []
+      bindir = Pathname.new(__FILE__).realpath.dirname
+      @copy_target.push(File.join(bindir, 'review-jlreq.cls'))
+      @copy_target.push(File.join(bindir, 'review-cover.sty'))
+
+      @content = build_content
+
+      Dir.chdir(build_path) do
+        @copy_target.each do |fname|
+          FileUtils.ln_s(fname, '.')
+        end
+        export_tex('__REVIEW__COVER__')
+        compile_tex('__REVIEW__COVER__')
+        if File.exist?('__REVIEW__COVER__.pdf')
+          FileUtils.mv '__REVIEW__COVER__.pdf', pdffile
+          @logger.info("built #{pdffile}")
+        else
+          error('何らかの理由でPDFを生成できませんでした')
+        end
+      end
+    end
+
+    def compile_tex(filename)
+      2.times do
+        system_or_raise(*[@config['covermaker']['texcommand'], @config['covermaker']['texoptions'], "#{filename}.tex"].flatten.compact)
+      end
+      system_or_raise(*[@config['covermaker']['dvicommand'], @config['covermaker']['dvioptions'], "#{filename}.dvi"].flatten.compact)
+    end
+
+    def cmykcheck(color)
+      # CMYK配列か
+      return nil if !color.kind_of?(Array) || color.size != 4
+      c = nil
+      color.each do |n|
+        return nil if !n.kind_of?(Numeric) || n < 0 || n > 1
+      end
+    end
+
+    def build_content
+      ia = [] # 画像系 (文字よりも下)
+      sa = [] # 文字系
+      # 背景
+      ia += build_content_bg
+
+      # 各コンテンツ
+      @anchors.keys.each do |pos|
+        next if @config['covermaker']['onlyone'] && (pos =~ /^L/ || %w(NC C SC).include?(pos)) # 表1モードのときは配置しない
+
+        if @config['covermaker'][pos]
+          # 画像配置
+          if @config['covermaker'][pos]['image']
+            ia << image_line(@config['covermaker'][pos]['image'], pos, pos)
+          end
+
+          if @config['covermaker'][pos]['string'] || @config['covermaker'][pos]['rawstring']
+            if @config['covermaker'][pos]['string'] && @config['covermaker'][pos]['rawstring']
+              error("#{pos} に string と rawstring の両方がありますが指定できるのはどちらか1つです")
+            end
+            sa << string_line(@config['covermaker'][pos], pos, pos)
+          end
+        end
+      end
+
+      ia.join("\n") + sa.join("\n")
+    end
+
+    def string_line(h, position, note)
+      opts = [
+        "anchor=#{@anchors[position]}",
+        "align=#{h['align']}"
+      ]
+
+      error("#{note} の文字の align の値が異常です: left, center, right") unless @aligns.include?(h['align'])
+
+      if h['xoffset']
+        error("#{note} の文字の xoffset の値が数値ではありません") unless h['xoffset'].kind_of?(Numeric)
+        opts.push("xshift=#{h['xoffset']}mm")
+      end
+      if h['yoffset']
+        error("#{note} の文字の yoffset の値が数値ではありません") unless h['yoffset'].kind_of?(Numeric)
+        opts.push("yshift=#{h['yoffset'] * -1}mm")
+      end
+
+      error("#{note} の font の値が範囲外です: mincho-light, mincho-medium, mincho-bold, gothic-medium,  gothic-bold, gothic-exbold, maru-medium") unless @fonts[h['font']]
+      %w(fontsize lineskip).each do |name|
+        error("#{note} の文字の #{name} の値が数値ではありません") unless h[name].kind_of?(Numeric)
+      end
+      rel = h['norelfont'] ? '' : '\\userelfont'
+      font = "\\fontsize{#{h['fontsize']}pt}{#{h['fontsize']}pt}#{rel}#{@fonts[h['font']]} "
+      content = font
+
+      if h['rawstring']
+        # 生データ
+        content = h['rawstring']
+      else
+        color = h['color']
+        if color.class == Array
+          # CMYK
+          error("#{note} の文字の color は無効です: [C,M,Y,K] で各値は0.0〜1.0") unless cmykcheck(color)
+          color = "[cmyk]{#{color.join(',')}}"
+        else
+          error("#{note} の文字の color は無効です: black, white または [C,M,Y,K]") unless @colors.include?(color)
+          color = "{#{color}}"
+        end
+
+        if h['vertical']
+          # 縦の場合は改行できない
+          content = "\\tate #{content}\\textcolor#{color}{#{h['string'].map{|s| escape(s)}.join}}"
+        else
+          # 横
+          content += h['string'].map{|s| "\\textcolor#{color}{#{escape(s)}}"}.
+                       join("\\\\[#{h['fontsize'] * h['lineskip']}pt]#{font}")
+        end
+      end
+
+      "\\draw (#{position}) node[#{opts.join(',')}] {#{content}};"
+    end
+
+    def image_line(h, position, note)
+      if h['file'].nil? || !File.exist?(h['file'])
+        error("#{note} の画像に file の指定がないかファイルが存在しません")
+      end
+
+      @copy_target << File.absolute_path(h['file'])
+      s = "\\node (image)[anchor=#{@anchors[position]}] at ("
+      opts = []
+      if h['xoffset']
+        error("#{note} の画像の xoffset の値が数値ではありません") unless h['xoffset'].kind_of?(Numeric)
+        opts.push("xshift=#{h['xoffset']}mm")
+      end
+      if h['yoffset']
+        error("#{note} の画像の yoffset の値が数値ではありません") unless h['yoffset'].kind_of?(Numeric)
+        opts.push("yshift=#{h['yoffset'] * -1}mm")
+      end
+
+      s << "[#{opts.join(',')}]" unless opts.empty?
+      s << "#{position}) {\\includegraphics"
+      s << "[#{h['option']}]" if h['option']
+      error("#{note} の画像の option に ] が含まれていて不正です") if h['option'] =~ /\]/
+      s << "{#{File.basename(h['file'])}}};"
+      s
+    end
+
+    def fill_line(name, color, position1, position2, offsets)
+      s = "\\definecolor{rv#{name}color}{cmyk}{#{color.join(',')}}"
+      s << "\\fill[rv#{name}color] ([xshift=#{offsets[0]}mm,yshift=#{offsets[1] * -1}mm]#{position1}) rectangle ([xshift=#{offsets[2]}mm,yshift=#{offsets[3] * -1}mm]#{position2});"
+      s
+    end
+
+    def build_content_bg
+      bm = @config['covermaker']['bleedmargin']
+      a = []
+      # 背→表1→表4 の順に乗せていく
+
+      if !@config['covermaker']['onlyone']
+        # onlyoneでなければ背配置
+        a << '% 背'
+
+        if @config['covermaker']['spinefill']
+          error("spinefill の color は無効です: [C,M,Y,K] で各値は0.0〜1.0") unless cmykcheck(@config['covermaker']['spinefill'])
+          a << fill_line('spinefill', @config['covermaker']['spinefill'], 'LNE', 'RSW', [0, -bm, 0, bm])
+        end
+
+        if @config['covermaker']['spineimage']
+          a << image_line(@config['covermaker']['spineimage'], 'C', 'spineimage')
+        end
+      end
+
+      a << '% 表1'
+      if @config['covermaker']['frontcoverfill']
+        error("frontcoverfill の color は無効です: [C,M,Y,K] で各値は0.0〜1.0") unless cmykcheck(@config['covermaker']['frontcoverfill'])
+        a << fill_line('frontcoverfill', @config['covermaker']['frontcoverfill'], 'RNW', 'RSE', [0, -bm, bm, bm])
+      end
+      if @config['covermaker']['frontcoverimage']
+        a << image_line(@config['covermaker']['frontcoverimage'], 'RC', 'frontcoverimage')
+      end
+
+      if !@config['covermaker']['onlyone']
+        # onlyoneでなければ表4配置
+        a << '% 表4'
+        if @config['covermaker']['backcoverfill']
+          error("backcoverfill の color は無効です: [C,M,Y,K] で各値は0.0〜1.0") unless cmykcheck(@config['covermaker']['backcoverfill'])
+          a << fill_line('backcoverfill', @config['covermaker']['backcoverfill'], 'LNW', 'LSE', [-bm, -bm, 0, bm])
+        end
+        if @config['covermaker']['backcoverimage']
+          a << image_line(@config['covermaker']['backcoverimage'], 'LC', 'backcoverimage')
+        end
+      end
+
+      a
+    end
+
+    def export_tex(filename)
+      File.open("#{filename}.tex", 'w') do |f|
+        f.puts <<EOT
+#{@dochead}
+\\def\\rvmetainfostring{#{@metainfostring}}
+\\def\\rvmetainfodate{#{@metainfodate}}
+\\RequirePackage[#{@reqpackopts.join(',')}]{review-cover}
+
+\\begin{document}
+\\begin{tikzpicture}[remember picture,overlay,x=1mm,y=1mm]
+\\rvorientation
+
+#{@content}
+
+\\rvmetainfo
+\\end{tikzpicture}
+\\end{document}
+EOT
+      end
+    end
+  end
+end
+
+ReVIEW::COVERMaker.execute(*ARGV)

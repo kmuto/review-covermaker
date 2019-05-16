@@ -1,0 +1,6 @@
+inherit: ["config-a5.yml"]
+
+covermaker:
+  # ページ数による換算の代わりにspineで直接背幅を指定する
+  pages: null
+  spine: 12.6

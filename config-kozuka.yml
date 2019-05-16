@@ -1,0 +1,5 @@
+inherit: ["config.yml"]
+
+covermaker:
+  # 小塚Pr6N利用
+  pxchfonmap: "kozuka-pr6n"
