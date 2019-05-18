@@ -214,6 +214,7 @@ noto-otc は、Noto CJK OTC を使うプリセットマップです。
 - `dvicommand`: DVIware を指定します。省略時は dvipdfmx。絶対パスで指定したいときを想定しています。
 - `dvioptions`: DVIware のコマンドオプションを指定します。省略時は `-d 5 -z 9` です。
 - `oldjis`: JIS2004 字形ではなく、旧 JIS 字形を使います。省略時は null (JIS2004使用) です。
+- `customsty`: review-cover.sty の後に読み込みたい任意の sty ファイルを指定します。
 
 ## 入稿
 - 印刷所の入稿仕様をよく読み、仕様に沿っていることを確認し、不明な場合は印刷所に問い合わせるなどしてください。

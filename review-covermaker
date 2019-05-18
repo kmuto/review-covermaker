@@ -119,7 +119,8 @@ module ReVIEW
           'texcommand' => 'uplatex',
           'texoptions' => '-interaction=nonstopmode -file-line-error',
           'dvicommand' => 'dvipdfmx',
-          'dvioptions' => '-d 5 -z 9'
+          'dvioptions' => '-d 5 -z 9',
+          'customsty' => nil
         }
       }
       @anchors.keys.each do |pos|
@@ -244,6 +245,10 @@ EOT
       bindir = Pathname.new(__FILE__).realpath.dirname
       @copy_target.push(File.join(bindir, 'review-jlreq.cls'))
       @copy_target.push(File.join(bindir, 'review-cover.sty'))
+
+      if @config['covermaker']['customsty']
+        @copy_target << File.absolute_path(@config['covermaker']['customsty'])
+      end
 
       @content = build_content
 
@@ -434,12 +439,17 @@ EOT
 
     def export_tex(filename)
       File.open("#{filename}.tex", 'w') do |f|
+        customline = ''
+        if @config['covermaker']['customsty']
+          customline = "\\RequirePackage{#{@config['covermaker']['customsty'].sub('.sty', '')}}"
+        end
+
         f.puts <<EOT
 #{@dochead}
 \\def\\rvmetainfostring{#{@metainfostring}}
 \\def\\rvmetainfodate{#{@metainfodate}}
 \\RequirePackage[#{@reqpackopts.join(',')}]{review-cover}
-
+#{customline}
 \\begin{document}
 \\begin{tikzpicture}[remember picture,overlay,x=1mm,y=1mm]
 \\rvorientation
