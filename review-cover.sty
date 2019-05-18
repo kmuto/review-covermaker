@@ -6,20 +6,32 @@
 \newif\ifrv@debug\rv@debugfalse
 \newif\ifrv@debugmore\rv@debugmorefalse
 \newif\ifrvonlyone\rvonlyonefalse
+\newif\ifrv@newjis\rv@newjistrue
+
 \DeclareOptionX{paper}[b5]{\gdef\rvpaper{#1}}
 \DeclareOptionX{spine}[0mm]{\gdef\rvspinewidth{#1}}
 \DeclareOptionX{debug}[false]{\csname rv@debug#1\endcsname} % デバッグモード
 \DeclareOptionX{debugmore}[false]{\csname rv@debugmore#1\endcsname} % さらに位置表示付き
 \DeclareOptionX{onlyone}[false]{\csname rvonlyone#1\endcsname} % 表1だけにするか
 \DeclareOptionX{pxchfonmap}[noto-otc]{\gdef\rvpxchfonmap{#1}} % pxchfonのマップ
-\ExecuteOptionsX{paper,spine,debug,debugmore,onlyone,pxchfonmap}
+\DeclareOptionX{newjis}[true]{\csname rv@newjis#1\endcsname} % JIS2004にするか
+\ExecuteOptionsX{paper,spine,debug,debugmore,onlyone,pxchfonmap,newjis}
 \ProcessOptionsX\relax
 
 % パッケージ
 \usepackage{plext}
 \usepackage{tikz}
-\usepackage[uplatex,deluxe,expert,jis2004]{otf}
-\usepackage[prefer2004jis,alphabet,relfont,\rvpxchfonmap]{pxchfon}
+
+\ifrv@newjis
+  \def\rv@otfopt{jis2004}
+  \def\rv@pxchfonopt{prefer2004jis}
+\else
+  \def\rv@otfopt{}
+  \def\rv@pxchfonopt{}
+\fi
+
+\usepackage[uplatex,deluxe,expert,\rv@otfopt]{otf}
+\usepackage[alphabet,relfont,\rvpxchfonmap,\rv@pxchfonopt]{pxchfon}
 
 \newlength{\rvpaperwidth}
 \newlength{\rvpaperheight}

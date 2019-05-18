@@ -109,6 +109,7 @@ module ReVIEW
           'preview' => nil,
           'previewmore' => nil,
           'onlyone' => nil,
+          'oldjis' => nil,
           'paper' => 'b5',
           'tombopaper' => 'a3',
           'bleedmargin' => 3,
@@ -235,6 +236,7 @@ EOT
       @reqpackopts.push('debug=true') if @config['covermaker']['preview']
       @reqpackopts.push('debugmore=true') if @config['covermaker']['previewmore']
       @reqpackopts.push('onlyone=true') if @config['covermaker']['onlyone']
+      @reqpackopts.push('newjis=false') if @config['covermaker']['oldjis']
       @reqpackopts.push("pxchfonmap=#{@config['covermaker']['pxchfonmap']}") if @config['covermaker']['pxchfonmap']
 
       # builddir内にコピー(リンク)するものを指定。相対パス
