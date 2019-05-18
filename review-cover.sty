@@ -1,5 +1,5 @@
 \NeedsTeXFormat{pLaTeX2e}
-\ProvidesPackage{review-cover}[2019/05/12 v1.0]
+\ProvidesPackage{review-cover}[2019/05/18 v1.1]
 
 \makeatletter
 
@@ -43,30 +43,12 @@
 \setlength{\rvspinewidthhalf}{\dimexpr \rvspinewidth / 2\relax}
 
 \if@pdftombo
-  \def\rv@tmp{b5}\ifx\rvpaper\rv@tmp
-    % A3シートでのB5位置
-    \def\pgf@sys@pdf@mark@pos@pgfpageorigin{%
-      \pgf@x=\dimexpr 1in +2.583mm - \the\rvspinewidthhalf\relax
-      \pgf@y=\dimexpr 1in -5.383mm \relax
-      \ignorespaces
-    }
-  \else\def\rv@tmp{a5}\ifx\rvpaper\rv@tmp
-    \def\rv@tmp{a3}\ifx\recls@tombopaper\rv@tmp
-      % A3シートでのA5位置
-      \def\pgf@sys@pdf@mark@pos@pgfpageorigin{%
-          \pgf@x=\dimexpr 1in +36.528mm - \the\rvspinewidthhalf\relax
-          \pgf@y=\dimexpr 1in +18.119mm \relax
-          \ignorespaces
-        }
-    \else\def\rv@tmp{b4}\ifx\recls@tombopaper\rv@tmp
-      % B4シートでのA5位置
-      \def\pgf@sys@pdf@mark@pos@pgfpageorigin{%
-          \pgf@x=\dimexpr 1in +8.582mm - \the\rvspinewidthhalf\relax\relax
-          \pgf@y=\dimexpr 1in -1.883mm \relax
-          \ignorespaces
-        }
-    \fi\fi
-  \fi\fi
+  % トンボ紙サイズに合わせて原点移動
+  \def\pgf@sys@pdf@mark@pos@pgfpageorigin{%
+    \pgf@x=\dimexpr0.5\dimexpr\pdfpagewidth - \paperwidth\relax\relax
+    \pgf@y=\dimexpr0.5\dimexpr\pdfpageheight - \paperheight\relax\relax
+    \ignorespaces
+  }
 \fi
 
 % 色指定
